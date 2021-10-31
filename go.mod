@@ -1,4 +1,4 @@
-module dmrdevices
+module dlnaprotocolinfo
 
 go 1.17
 
