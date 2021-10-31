@@ -11,9 +11,11 @@ import (
 	"os"
 	"strings"
 
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/widget"
 	"github.com/gen2brain/dlgs"
 	"github.com/koron/go-ssdp"
-	"github.com/webview/webview"
 )
 
 type root struct {
@@ -50,30 +52,35 @@ var (
 )
 
 func main() {
-	b, err := getResponse()
-	if err != nil {
-		dlgs.Error("Error", err.Error())
-		os.Exit(1)
-	}
 
-	go startServer(b.String())
+	myApp := app.New()
+	myWindow := myApp.NewWindow("DLNA protocol info")
+	but := widget.NewButton("Click me to get the DLNA protocol info for all supported devices in your network", func() {
+		go func() {
+			u, _ := url.Parse("http://localhost:13714/")
+			_ = fyne.CurrentApp().OpenURL(u)
+		}()
+	})
 
-	select {
-	case <-serverStarted:
-		break
-	case e := <-serverFailed:
-		dlgs.Error("Error", e.Error())
-		os.Exit(1)
-	}
+	myApp.Lifecycle().SetOnStarted(func() {
+		b, err := getResponse()
+		if err != nil {
+			dlgs.Error("Error", err.Error())
+			os.Exit(1)
+		}
 
-	debug := true
-	w := webview.New(debug)
-	defer w.Destroy()
-	w.SetTitle("DLNA Protocol Info")
-	w.SetSize(800, 600, webview.HintNone)
+		go startServer(b.String())
 
-	w.Navigate("http://localhost:13714/")
-	w.Run()
+		select {
+		case <-serverStarted:
+			break
+		case e := <-serverFailed:
+			dlgs.Error("Error", e.Error())
+			os.Exit(1)
+		}
+	})
+	myWindow.SetContent(but)
+	myWindow.ShowAndRun()
 
 }
 
