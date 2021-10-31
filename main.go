@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gen2brain/dlgs"
 	"github.com/koron/go-ssdp"
 	"github.com/webview/webview"
 )
@@ -49,15 +50,9 @@ var (
 )
 
 func main() {
-	debug := true
-	w := webview.New(debug)
-	defer w.Destroy()
-	w.SetTitle("DLNA Protocol Info")
-	w.SetSize(800, 600, webview.HintNone)
-
 	b, err := getResponse()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Encountered error(s): %s\n", err)
+		dlgs.Error("Error", err.Error())
 		os.Exit(1)
 	}
 
@@ -67,9 +62,15 @@ func main() {
 	case <-serverStarted:
 		break
 	case e := <-serverFailed:
-		fmt.Fprintf(os.Stderr, "Encountered error(s): %s\n", e.Error())
+		dlgs.Error("Error", e.Error())
 		os.Exit(1)
 	}
+
+	debug := true
+	w := webview.New(debug)
+	defer w.Destroy()
+	w.SetTitle("DLNA Protocol Info")
+	w.SetSize(800, 600, webview.HintNone)
 
 	w.Navigate("http://localhost:13714/")
 	w.Run()
@@ -144,7 +145,7 @@ func getResponse() (*strings.Builder, error) {
 func loadSSDPservices(delay int) error {
 	list, err := ssdp.Search(ssdp.All, delay, "")
 	if err != nil {
-		return fmt.Errorf("LoadSSDPservices search error: %w", err)
+		return fmt.Errorf("search error: %w", err)
 	}
 
 	for _, srv := range list {
@@ -155,7 +156,7 @@ func loadSSDPservices(delay int) error {
 	if len(Devices) > 0 {
 		return nil
 	}
-	return errors.New("loadSSDPservices: No available Media Renderers")
+	return errors.New("no available Media Renderers")
 }
 
 func dMRextractor(dmrurl string) (*dMRextracted, error) {
