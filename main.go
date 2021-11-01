@@ -144,7 +144,7 @@ func getResponse() (*strings.Builder, error) {
 			return nil, err
 		}
 		builder.WriteString(string(bodybytes))
-		builder.WriteString("\n----------")
+		builder.WriteString("\n----------\n")
 	}
 	return builder, nil
 }
