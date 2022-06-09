@@ -120,7 +120,7 @@ func getResponse() (*strings.Builder, error) {
 		}
 
 		client := &http.Client{}
-		rawBody := `<?xml version='1.0' encoding='utf-8'?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><u:GetProtocolInfo xmlns:u="urn:schemas-upnp-org:service:ConnectionManager:1"></u:GetProtocolInfo></s:Body></s:Envelope>`
+		rawBody := `<?xml version='1.0' encoding='utf-8'?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><u:GetProtocolInfo xmlns:u="urn:schemas-upnp-org:service:ConnectionManager:1"></u:GetProtocolInfo></s:Body></s:Envelope>`
 		req, err := http.NewRequest(http.MethodPost, dmrStuff.ConnectionManagerURL, strings.NewReader(rawBody))
 		if err != nil {
 			return nil, err
