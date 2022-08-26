@@ -63,13 +63,24 @@ func main() {
 	})
 
 	myApp.Lifecycle().SetOnStarted(func() {
-		b, err := getResponse()
+		if err := loadSSDPservices(2); err != nil {
+			dlgs.Error("Error", err.Error())
+			os.Exit(1)
+		}
+
+		b, err := getResponseProtInfo()
 		if err != nil {
 			dlgs.Error("Error", err.Error())
 			os.Exit(1)
 		}
 
-		go startServer(b.String())
+		c, err := getResponseConnectionIds()
+		if err != nil {
+			dlgs.Error("Error", err.Error())
+			os.Exit(1)
+		}
+
+		go startServer(b + "\n~~~~~~~~~~~~~~~\n" + c)
 
 		select {
 		case <-serverStarted:
@@ -105,25 +116,21 @@ func serveData(s string) http.HandlerFunc {
 	}
 }
 
-func getResponse() (*strings.Builder, error) {
-	err := loadSSDPservices(2)
-	if err != nil {
-		return nil, err
-	}
+func getResponseProtInfo() (string, error) {
 	builder := new(strings.Builder)
 	for q, w := range Devices {
-		builder.WriteString(q + "\n")
+		builder.WriteString("Protocol Info, Device: " + q + "\n")
 
 		dmrStuff, err := dMRextractor(w)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 
 		client := &http.Client{}
 		rawBody := `<?xml version='1.0' encoding='utf-8'?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><u:GetProtocolInfo xmlns:u="urn:schemas-upnp-org:service:ConnectionManager:1"></u:GetProtocolInfo></s:Body></s:Envelope>`
 		req, err := http.NewRequest(http.MethodPost, dmrStuff.ConnectionManagerURL, strings.NewReader(rawBody))
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 
 		req.Header = http.Header{
@@ -135,18 +142,60 @@ func getResponse() (*strings.Builder, error) {
 
 		resp, err := client.Do(req)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		defer resp.Body.Close()
 
 		bodybytes, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		builder.WriteString(string(bodybytes))
 		builder.WriteString("\n----------\n")
 	}
-	return builder, nil
+	return builder.String(), nil
+}
+
+func getResponseConnectionIds() (string, error) {
+	builder := new(strings.Builder)
+	for q, w := range Devices {
+		builder.WriteString("ConnectionIds, Device: " + q + "\n")
+
+		dmrStuff, err := dMRextractor(w)
+		if err != nil {
+			return "", err
+		}
+
+		client := &http.Client{}
+		//rawBody := `<?xml version='1.0' encoding='utf-8'?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><u:GetProtocolInfo xmlns:u="urn:schemas-upnp-org:service:ConnectionManager:1"></u:GetProtocolInfo></s:Body></s:Envelope>`
+		rawBody := `<?xml version='1.0' encoding='utf-8'?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><u:GetCurrentConnectionIDs xmlns:u="urn:schemas-upnp-org:service:ConnectionManager:1"></u:GetCurrentConnectionIDs></s:Body></s:Envelope>`
+		req, err := http.NewRequest(http.MethodPost, dmrStuff.ConnectionManagerURL, strings.NewReader(rawBody))
+		if err != nil {
+			return "", err
+		}
+
+		req.Header = http.Header{
+			"SOAPAction":   []string{`"urn:schemas-upnp-org:service:ConnectionManager:1#GetCurrentConnectionIDs"`},
+			"content-type": []string{"text/xml"},
+			"charset":      []string{"utf-8"},
+			"Connection":   []string{"close"},
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+
+		bodybytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
+		builder.WriteString(string(bodybytes))
+		builder.WriteString("\n----------\n")
+	}
+
+	return builder.String(), nil
 }
 
 func loadSSDPservices(delay int) error {
