@@ -14,6 +14,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/widget"
+	"github.com/alexballas/go2tv/soapcalls"
 	"github.com/gen2brain/dlgs"
 	"github.com/koron/go-ssdp"
 )
@@ -206,7 +207,11 @@ func loadSSDPservices(delay int) error {
 
 	for _, srv := range list {
 		if srv.Type == "urn:schemas-upnp-org:service:AVTransport:1" {
-			Devices[srv.Server] = srv.Location
+			fn, err := soapcalls.GetFriendlyName(srv.Location)
+			if err != nil {
+				return err
+			}
+			Devices[fn] = srv.Location
 		}
 	}
 	if len(Devices) > 0 {
